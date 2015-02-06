@@ -1,0 +1,6 @@
+core = "7.x"
+description = "Module servant à customiser la validation de formulaire"
+package = Custom Biolit
+name = "nsBiolitHooks"
+project = "Biolit"
+version = "7.alpha-1.0"

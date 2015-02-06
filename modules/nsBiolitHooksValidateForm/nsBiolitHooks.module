@@ -1,0 +1,596 @@
+<?php
+
+/** 
+* Biolit hooks module
+**/
+
+//Pour alterer l'action du bouton submit apres com ou identification
+function nsBiolitHooks_form_alter(&$form, $form_state, $form_id) {
+  // do stuff
+	
+	//debug($form, '$form contents:', TRUE);
+	if($form_id == 'comment_node_programme_saisons_form' || $form_id == 'comment_node_programme_new_form' || $form_id == 'comment_node_programme_obs_libre_form' || $form_id == 'comment_node_programme_n1_form' || $form_id == 'comment_node_programme_flore_form' || $form_id == 'comment_node_programme_dechet_form'){
+
+		//faut aller chercher le nom de la photo dans la $form
+
+		$tabOfurl = explode('pic',$_SERVER['REQUEST_URI']);
+		        
+        $val =  $tabOfurl[count($tabOfurl) - 1]; 
+
+        if($val[0] == '=') $val = str_replace('=', '', $val);
+		
+
+		$form['#validate'][] = 'nsBiolitHooks_form_alter_validate';
+		$form['#submit'][] = 'nsBiolitHooks_form_alter_submit';
+   
+		
+
+	}
+			
+}
+
+function nsBiolitHooks_form_alter_validate($form, &$form_state) {
+    
+	if($form['#node']->type == 'programme_saisons') $form['#action'] .= '?destination=node/'.$form['#node']->nid.'pic'.$form['field_com_nom_photo_saisons']['und'][0]['value']['#value'];
+	else if($form['#node']->type == 'programme_new') $form['#action'] .= '?destination=node/'.$form['#node']->nid.'pic'.$form['field_com_nom_photo_new']['und'][0]['value']['#value'];
+	else if($form['#node']->type == 'programme_flore') $form['#action'] .= '?destination=node/'.$form['#node']->nid.'pic'.$form['field_com_nom_photo_flore']['und'][0]['value']['#value'];
+	else if($form['#node']->type == 'programme_n1') $form['#action'] .= '?destination=node/'.$form['#node']->nid.'pic'.$form['field_com_nom_photo']['und'][0]['value']['#value'];
+	else if($form['#node']->type == 'programme_obs_libre') $form['#action'] .= '?destination=node/'.$form['#node']->nid.'pic'.$form['field_com_nom_photo_libre']['und'][0]['value']['#value'];
+	else if($form['#node']->type == 'programme_dechet') $form['#action'] .= '?destination=node/'.$form['#node']->nid.'pic'.$form['field_com_nom_photo_dechet']['und'][0]['value']['#value'];
+
+}
+
+function nsBiolitHooks_form_alter_submit($form, &$form_state) {
+    
+    $tabOfurl = explode('node/',$_SERVER['REQUEST_URI']);
+    $tabOfurl = $tabOfurl[count($tabOfurl) - 2];
+
+    if($form['#node']->type == 'programme_saisons') $form_state['redirect'] = $tabOfurl.'node/'.$form['#node']->nid.'pic'.$form['field_com_nom_photo_saisons']['und'][0]['value']['#value'];
+    else if($form['#node']->type == 'programme_new') $form_state['redirect'] = $tabOfurl.'node/'.$form['#node']->nid.'pic'.$form['field_com_nom_photo_new']['und'][0]['value']['#value'];
+    else if($form['#node']->type == 'programme_flore') $form_state['redirect'] = $tabOfurl.'node/'.$form['#node']->nid.'pic'.$form['field_com_nom_photo_flore']['und'][0]['value']['#value'];
+    else if($form['#node']->type == 'programme_n1') $form_state['redirect'] = $tabOfurl.'node/'.$form['#node']->nid.'pic'.$form['field_com_nom_photo']['und'][0]['value']['#value'];
+    else if($form['#node']->type == 'programme_obs_libre') $form_state['redirect'] = $tabOfurl.'node/'.$form['#node']->nid.'pic'.$form['field_com_nom_photo_libre']['und'][0]['value']['#value'];
+    else if($form['#node']->type == 'programme_dechet') $form_state['redirect'] = $tabOfurl.'node/'.$form['#node']->nid.'pic'.$form['field_com_nom_photo_dechet']['und'][0]['value']['#value'];
+
+}
+
+/**
+ * Implements hook_node_validate().
+ *
+ * -> Tester la validation du formulaire de saisie (protocole N1)
+ */
+function nsBiolitHooks_node_validate($node, $form) {
+
+	//print_r($node);
+
+	if($node->type == 'programme_n1'){ 
+
+		/*******************/
+		/*  HEURE DE MAREE */
+		/*******************/
+		$hm = $node->field_heure_de_maree_basse['und'][0]['value'];
+		$mm = $node->field_minutes_de_maree_basse['und'][0]['value'];
+		if($hm == '' && $mm != '') form_set_error('field_heure_de_maree_basse', t('Veuillez renseigner l\'heure de marée'));
+		if($hm != '' && $mm == '') form_set_error('field_minutes_de_maree_basse', t('Veuillez renseigner les minutes de marée'));
+
+		/***********/
+		/*  HEURE */
+		/**********/
+
+		$hd = $node->field_heure_debut['und'][0]['value']; 
+		//$md = $node->field_heure_debut['und'][0]['minute'];
+		$hf = $node->field_field_heure_fin['und'][0]['value']; 
+		//$mf = $node->field_field_heure_fin['und'][0]['minute'];
+
+		/*if(!$hd)form_set_error('field_heure_debut', t("Veuillez renseigner une heure d'observation"));
+		if(!$md)form_set_error('field_heure_debut', t("Veuillez renseigner une heure d'observation"));		
+		if(!$hf)form_set_error('field_field_field_heure_fin', t("Veuillez renseigner une heure d'observation"));
+		if(!$mf)form_set_error('field_field_field_heure_fin', t("Veuillez renseigner une heure d'observation"));*/
+		
+
+		if($hd > $hf){
+			form_set_error('field_heure_debut', t('Veuillez entrer une heure de début inférieure à l\'heure de fin.'));
+			form_set_error('field_field_heure_fin');
+		}
+		/*else if($hd == $hf){
+			if($md >= $mf){
+				form_set_error('field_heure_debut', t('Veuillez entrer une heure de début inférieure à l\'heure de fin.'));
+				form_set_error('field_field_heure_fin');
+			}
+		}*/
+
+ 		/***********/
+		/*  DATE */
+		/**********/
+		//field_localisations
+		$date = $node->field_date_observation['und'][0]['value'];
+
+		
+		//$datea = explode(' ',$date);
+		//echo $datea[0].'<br/>';
+
+		$dateTab = explode(' ',$date);
+		$date = $dateTab[0];
+		$currentDate = date('Y-m-d');
+
+		
+	
+		if($date > $currentDate){form_set_error('field_date_observation', t('Veuillez entrer une date d\'observation antérieur à la date du jour.'));}
+
+
+		/******************/
+		/*  LOCALISATION */
+		/******************/
+
+	
+	
+		//$val = field_get_items('node', $node, 'field_localisations');
+		
+		//print_r($val[0]['geom']);
+
+		$NaN = false;
+
+		//$latLoca = $node->field_localisations['und'][0]['lat'];
+		//$lonLoca = $node->field_localisations['und'][0]['lon'];
+
+		$gps = field_get_items('node', $node, 'field_localisations');
+		$loca = field_get_items('node', $node, 'field_coordonnees');
+
+
+		//if($gps == null){echo "<script>alert('toto');</script>" ;}
+
+		//print_r($loca[0]['geom']['lat']);
+		
+		/*if( is_numeric($loca[0]['geom']['lon']) || is_numeric($loca[0]['geom']['lat']) ){
+			$NaN = true;
+		}*/
+		
+
+		//Si pas de gps ni de carte : 
+		if( $gps[0]['geom'] == '' && $loca[0]['geom']['lat'] == ''/* && $loca[0]['geom']['lon'] == '') || $NaN*/  ) {
+			form_set_error('field_localisations', t('Veuillez renseigner la localisation de l\'observation à l\'aide de la carte ou des coordonnées GPS.'));
+			form_set_error('field_coordonnees');
+		}
+
+		
+		
+		
+
+
+	}elseif($node->type == 'programme_obs_libre'){ 
+
+		/***********/
+		/*  HEURE */
+		/**********/
+
+		$hd = $node->field_heure_debut_libre['und'][0]['value']; 
+		//$md = $node->field_heure_debut['und'][0]['minute'];
+		$hf = $node->field_heure_fin_libre['und'][0]['value']; 
+		//$mf = $node->field_field_heure_fin['und'][0]['minute'];
+
+		/*if(!$hd)form_set_error('field_heure_debut', t("Veuillez renseigner une heure d'observation"));
+		if(!$md)form_set_error('field_heure_debut', t("Veuillez renseigner une heure d'observation"));		
+		if(!$hf)form_set_error('field_field_field_heure_fin', t("Veuillez renseigner une heure d'observation"));
+		if(!$mf)form_set_error('field_field_field_heure_fin', t("Veuillez renseigner une heure d'observation"));*/
+		
+
+		if($hd > $hf){
+			form_set_error('field_heure_debut_libre', t('Veuillez entrer une heure de début inférieure à l\'heure de fin.'));
+			form_set_error('field_heure_fin_libre');
+		}
+		/*else if($hd == $hf){
+			if($md >= $mf){
+				form_set_error('field_heure_debut', t('Veuillez entrer une heure de début inférieure à l\'heure de fin.'));
+				form_set_error('field_field_heure_fin');
+			}
+		}*/
+
+ 		/***********/
+		/*  DATE */
+		/**********/
+		//field_localisations
+		$date = $node->field_date_observation_libre['und'][0]['value'];
+
+		
+		//$datea = explode(' ',$date);
+		//echo $datea[0].'<br/>';
+
+		$dateTab = explode(' ',$date);
+		$date = $dateTab[0];
+		$currentDate = date('Y-m-d');
+
+		
+	
+		if($date > $currentDate){form_set_error('field_date_observation_libre', t('Veuillez entrer une date d\'observation antérieur à la date du jour.'));}
+
+
+		/******************/
+		/*  LOCALISATION */
+		/******************/
+
+	
+	
+		//$val = field_get_items('node', $node, 'field_localisations');
+		
+		//print_r($val[0]['geom']);
+
+		$NaN = false;
+
+		//$latLoca = $node->field_localisations['und'][0]['lat'];
+		//$lonLoca = $node->field_localisations['und'][0]['lon'];
+
+		$gps = field_get_items('node', $node, 'field_localisations_libre');
+		$loca = field_get_items('node', $node, 'field_coordonnees_libre');
+
+
+		//if($gps == null){echo "<script>alert('toto');</script>" ;}
+
+		//print_r($loca[0]['geom']['lat']);
+		
+		/*if( is_numeric($loca[0]['geom']['lon']) || is_numeric($loca[0]['geom']['lat']) ){
+			$NaN = true;
+		}*/
+		
+
+		//Si pas de gps ni de carte : 
+		if( $gps[0]['geom'] == '' && $loca[0]['geom']['lat'] == ''/* && $loca[0]['geom']['lon'] == '') || $NaN*/  ) {
+			form_set_error('field_localisations_libre', t('Veuillez renseigner la localisation de l\'observation à l\'aide de la carte ou des coordonnées GPS.'));
+			form_set_error('field_coordonnees_libre');
+		}
+
+		
+		
+		
+
+
+	}elseif($node->type == 'programme_saisons'){ 
+
+		/***********/
+		/*  HEURE */
+		/**********/
+
+		$hd = $node->field_heure_debut_saisons['und'][0]['value']; 
+		//$md = $node->field_heure_debut['und'][0]['minute'];
+		$hf = $node->field_heure_fin_saisons['und'][0]['value']; 
+		//$mf = $node->field_field_heure_fin['und'][0]['minute'];
+
+		/*if(!$hd)form_set_error('field_heure_debut', t("Veuillez renseigner une heure d'observation"));
+		if(!$md)form_set_error('field_heure_debut', t("Veuillez renseigner une heure d'observation"));		
+		if(!$hf)form_set_error('field_field_field_heure_fin', t("Veuillez renseigner une heure d'observation"));
+		if(!$mf)form_set_error('field_field_field_heure_fin', t("Veuillez renseigner une heure d'observation"));*/
+		
+
+		if($hd > $hf){
+			form_set_error('field_heure_debut_saisons', t('Veuillez entrer une heure de début inférieure à l\'heure de fin.'));
+			form_set_error('field_heure_fin_saisons');
+		}
+		/*else if($hd == $hf){
+			if($md >= $mf){
+				form_set_error('field_heure_debut', t('Veuillez entrer une heure de début inférieure à l\'heure de fin.'));
+				form_set_error('field_field_heure_fin');
+			}
+		}*/
+
+ 		/***********/
+		/*  DATE */
+		/**********/
+		//field_localisations
+		$date = $node->field_date_observation_saisons['und'][0]['value'];
+
+		
+		//$datea = explode(' ',$date);
+		//echo $datea[0].'<br/>';
+
+		$dateTab = explode(' ',$date);
+		$date = $dateTab[0];
+		$currentDate = date('Y-m-d');
+
+		
+	
+		if($date > $currentDate){form_set_error('field_date_observation_saisons', t('Veuillez entrer une date d\'observation antérieur à la date du jour.'));}
+
+
+		/******************/
+		/*  LOCALISATION */
+		/******************/
+
+	
+	
+		//$val = field_get_items('node', $node, 'field_localisations');
+		
+		//print_r($val[0]['geom']);
+
+		$NaN = false;
+
+		//$latLoca = $node->field_localisations['und'][0]['lat'];
+		//$lonLoca = $node->field_localisations['und'][0]['lon'];
+
+		$gps = field_get_items('node', $node, 'field_localisations_saisons');
+		$loca = field_get_items('node', $node, 'field_coordonnees_saisons');
+
+
+		//if($gps == null){echo "<script>alert('toto');</script>" ;}
+
+		//print_r($loca[0]['geom']['lat']);
+		
+		/*if( is_numeric($loca[0]['geom']['lon']) || is_numeric($loca[0]['geom']['lat']) ){
+			$NaN = true;
+		}*/
+		
+
+		//Si pas de gps ni de carte : 
+		if( $gps[0]['geom'] == '' && $loca[0]['geom']['lat'] == ''/* && $loca[0]['geom']['lon'] == '') || $NaN*/  ) {
+			form_set_error('field_localisations_saisons', t('Veuillez renseigner la localisation de l\'observation à l\'aide de la carte ou des coordonnées GPS.'));
+			form_set_error('field_coordonnees_saisons');
+		}
+
+		
+		
+		
+
+
+	}elseif($node->type == 'programme_new'){ 
+
+		/***********/
+		/*  HEURE */
+		/**********/
+
+		$hd = $node->field_heure_debut_new['und'][0]['value']; 
+		//$md = $node->field_heure_debut['und'][0]['minute'];
+		$hf = $node->field_heure_fin_new['und'][0]['value']; 
+		//$mf = $node->field_field_heure_fin['und'][0]['minute'];
+
+		/*if(!$hd)form_set_error('field_heure_debut', t("Veuillez renseigner une heure d'observation"));
+		if(!$md)form_set_error('field_heure_debut', t("Veuillez renseigner une heure d'observation"));		
+		if(!$hf)form_set_error('field_field_field_heure_fin', t("Veuillez renseigner une heure d'observation"));
+		if(!$mf)form_set_error('field_field_field_heure_fin', t("Veuillez renseigner une heure d'observation"));*/
+		
+
+		if($hd > $hf){
+			if(isset ($_SESSION['language']) && $_SESSION['language'] == 'en') form_set_error('field_heure_debut_new', t('The starting time has to be less than the ending time.'));
+			else form_set_error('field_heure_debut_new', t('Veuillez entrer une heure de début inférieure à l\'heure de fin.'));
+			form_set_error('field_heure_fin_new');
+		}
+		/*else if($hd == $hf){
+			if($md >= $mf){
+				form_set_error('field_heure_debut', t('Veuillez entrer une heure de début inférieure à l\'heure de fin.'));
+				form_set_error('field_field_heure_fin');
+			}
+		}*/
+
+ 		/***********/
+		/*  DATE */
+		/**********/
+		//field_localisations
+		$date = $node->field_date_observation_new['und'][0]['value'];
+
+		
+		//$datea = explode(' ',$date);
+		//echo $datea[0].'<br/>';
+
+		$dateTab = explode(' ',$date);
+		$date = $dateTab[0];
+		$currentDate = date('Y-m-d');
+
+		
+		
+		if($date > $currentDate){
+			if(isset ($_SESSION['language']) && $_SESSION['language'] == 'en') form_set_error('field_date_observation_new', t('The observation date must be before the current date.'));
+			else form_set_error('field_date_observation_new', t('Veuillez entrer une date d\'observation antérieur à la date du jour.'));
+		}
+
+
+		/******************/
+		/*  LOCALISATION */
+		/******************/
+
+	
+	
+		//$val = field_get_items('node', $node, 'field_localisations');
+		
+		//print_r($val[0]['geom']);
+
+		$NaN = false;
+
+		//$latLoca = $node->field_localisations['und'][0]['lat'];
+		//$lonLoca = $node->field_localisations['und'][0]['lon'];
+
+		$gps = field_get_items('node', $node, 'field_localisations_new');
+		$loca = field_get_items('node', $node, 'field_coordonnees_new');
+
+
+		//if($gps == null){echo "<script>alert('toto');</script>" ;}
+
+		//print_r($loca[0]['geom']['lat']);
+		
+		/*if( is_numeric($loca[0]['geom']['lon']) || is_numeric($loca[0]['geom']['lat']) ){
+			$NaN = true;
+		}*/
+		
+
+		//Si pas de gps ni de carte : 
+		if( $gps[0]['geom'] == '' && $loca[0]['geom']['lat'] == ''/* && $loca[0]['geom']['lon'] == '') || $NaN*/  ) {
+			if(isset ($_SESSION['language']) && $_SESSION['language'] == 'en') form_set_error('field_localisations_new', t('Please fill in the observation location using the map or the geographic coordinates'));
+			else form_set_error('field_localisations_new', t('Veuillez renseigner la localisation de l\'observation à l\'aide de la carte ou des coordonnées GPS.'));
+			form_set_error('field_coordonnees_new');
+		}
+
+		
+		
+		
+
+
+	}elseif($node->type == 'programme_flore'){ 
+
+		/***********/
+		/*  HEURE */
+		/**********/
+
+		$hd = $node->field_heure_debut_flore['und'][0]['value']; 
+		//$md = $node->field_heure_debut['und'][0]['minute'];
+		$hf = $node->field_heure_fin_flore['und'][0]['value']; 
+		//$mf = $node->field_field_heure_fin['und'][0]['minute'];
+
+		/*if(!$hd)form_set_error('field_heure_debut', t("Veuillez renseigner une heure d'observation"));
+		if(!$md)form_set_error('field_heure_debut', t("Veuillez renseigner une heure d'observation"));		
+		if(!$hf)form_set_error('field_field_field_heure_fin', t("Veuillez renseigner une heure d'observation"));
+		if(!$mf)form_set_error('field_field_field_heure_fin', t("Veuillez renseigner une heure d'observation"));*/
+		
+
+		if($hd > $hf){
+			form_set_error('field_heure_debut_flore', t('Veuillez entrer une heure de début inférieure à l\'heure de fin.'));
+			form_set_error('field_heure_fin_flore');
+		}
+		/*else if($hd == $hf){
+			if($md >= $mf){
+				form_set_error('field_heure_debut', t('Veuillez entrer une heure de début inférieure à l\'heure de fin.'));
+				form_set_error('field_field_heure_fin');
+			}
+		}*/
+
+ 		/***********/
+		/*  DATE */
+		/**********/
+		//field_localisations
+		$date = $node->field_date_observation_flore['und'][0]['value'];
+
+		
+		//$datea = explode(' ',$date);
+		//echo $datea[0].'<br/>';
+
+		$dateTab = explode(' ',$date);
+		$date = $dateTab[0];
+		$currentDate = date('Y-m-d');
+
+		
+	
+		if($date > $currentDate){form_set_error('field_date_observation_flore', t('Veuillez entrer une date d\'observation antérieur à la date du jour.'));}
+
+
+		/******************/
+		/*  LOCALISATION */
+		/******************/
+
+	
+	
+		//$val = field_get_items('node', $node, 'field_localisations');
+		
+		//print_r($val[0]['geom']);
+
+		$NaN = false;
+
+		//$latLoca = $node->field_localisations['und'][0]['lat'];
+		//$lonLoca = $node->field_localisations['und'][0]['lon'];
+
+		$gps = field_get_items('node', $node, 'field_localisations_flore');
+		$loca = field_get_items('node', $node, 'field_coordonnees_flore');
+
+
+		//if($gps == null){echo "<script>alert('toto');</script>" ;}
+
+		//print_r($loca[0]['geom']['lat']);
+		
+		/*if( is_numeric($loca[0]['geom']['lon']) || is_numeric($loca[0]['geom']['lat']) ){
+			$NaN = true;
+		}*/
+		
+
+		//Si pas de gps ni de carte : 
+		if( $gps[0]['geom'] == '' && $loca[0]['geom']['lat'] == ''/* && $loca[0]['geom']['lon'] == '') || $NaN*/  ) {
+			form_set_error('field_localisations_flore', t('Veuillez renseigner la localisation de l\'observation à l\'aide de la carte ou des coordonnées GPS.'));
+			form_set_error('field_coordonnees_flore');
+		}
+
+		
+		
+		
+
+
+	}elseif($node->type == 'programme_dechet'){ 
+
+		/***********/
+		/*  HEURE */
+		/**********/
+
+		$hd = $node->field_heure_debut_dechet['und'][0]['value']; 
+		//$md = $node->field_heure_debut['und'][0]['minute'];
+		$hf = $node->field_heure_fin_dechet['und'][0]['value']; 
+		//$mf = $node->field_field_heure_fin['und'][0]['minute'];
+
+		/*if(!$hd)form_set_error('field_heure_debut', t("Veuillez renseigner une heure d'observation"));
+		if(!$md)form_set_error('field_heure_debut', t("Veuillez renseigner une heure d'observation"));		
+		if(!$hf)form_set_error('field_field_field_heure_fin', t("Veuillez renseigner une heure d'observation"));
+		if(!$mf)form_set_error('field_field_field_heure_fin', t("Veuillez renseigner une heure d'observation"));*/
+		
+
+		if($hd > $hf){
+			form_set_error('field_heure_debut_dechet', t('Veuillez entrer une heure de début inférieure à l\'heure de fin.'));
+			form_set_error('field_heure_fin_dechet');
+		}
+		/*else if($hd == $hf){
+			if($md >= $mf){
+				form_set_error('field_heure_debut', t('Veuillez entrer une heure de début inférieure à l\'heure de fin.'));
+				form_set_error('field_field_heure_fin');
+			}
+		}*/
+
+ 		/***********/
+		/*  DATE */
+		/**********/
+		//field_localisations
+		$date = $node->field_date_observation_dechet['und'][0]['value'];
+
+		
+		//$datea = explode(' ',$date);
+		//echo $datea[0].'<br/>';
+
+		$dateTab = explode(' ',$date);
+		$date = $dateTab[0];
+		$currentDate = date('Y-m-d');
+
+		
+	
+		if($date > $currentDate){form_set_error('field_date_observation_dechet', t('Veuillez entrer une date d\'observation antérieur à la date du jour.'));}
+
+
+		/******************/
+		/*  LOCALISATION */
+		/******************/
+
+	
+	
+		//$val = field_get_items('node', $node, 'field_localisations');
+		
+		//print_r($val[0]['geom']);
+
+		$NaN = false;
+
+		//$latLoca = $node->field_localisations['und'][0]['lat'];
+		//$lonLoca = $node->field_localisations['und'][0]['lon'];
+
+		$gps = field_get_items('node', $node, 'field_localisations_dechet');
+		$loca = field_get_items('node', $node, 'field_coordonnees_dechet');
+
+
+		//if($gps == null){echo "<script>alert('toto');</script>" ;}
+
+		//print_r($loca[0]['geom']['lat']);
+		
+		/*if( is_numeric($loca[0]['geom']['lon']) || is_numeric($loca[0]['geom']['lat']) ){
+			$NaN = true;
+		}*/
+		
+
+		//Si pas de gps ni de carte : 
+		if( $gps[0]['geom'] == '' && $loca[0]['geom']['lat'] == ''/* && $loca[0]['geom']['lon'] == '') || $NaN*/  ) {
+			form_set_error('field_localisations_dechet', t('Veuillez renseigner la localisation de l\'observation à l\'aide de la carte ou des coordonnées GPS.'));
+			form_set_error('field_coordonnees_dechet');
+		}
+
+		
+		
+		
+
+
+	}
+}
